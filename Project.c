@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-void magic_pixel_buffer_buffer(FILE *, int ,int);
-int file_orig_format;
+
 typedef struct pixel
 {
   unsigned char r;
@@ -9,12 +8,17 @@ typedef struct pixel
   unsigned char b;
 
 }pixel;
+pixel magic_pixel_buffer_buffer(FILE *, int ,int);
+void write_to_p6(FILE *,pixel, int, int);
+void write_to_p3(FILE *, pixel, int, int);
+int file_orig_format, max_color;
+
 
 int main(int argc, char *argv[])
 {
 
   int format = atoi(argv[1]);
-  if (format != 3)
+  if (format != 3 && format != 6)
   {
     fprintf(stderr, "Error: cannot convert to this format \n");
     exit(1);
@@ -55,31 +59,31 @@ int main(int argc, char *argv[])
       }//for checking for comments if statement
       break;
     }
-    int width, height,max_color;
+    int width, height;
     fscanf(fh,"%d %d",&width, &height);
     fgetc(fh);
     fscanf(fh, "%d",&max_color);
     fgetc(fh);
-    magic_pixel_buffer_buffer(fh, width, height);
+    pixel buffer=magic_pixel_buffer_buffer(fh, width, height);
 
-
-  //input
 
 
 
   //output
-  //FILE * fh2 = fopen(argv[3], "w");
-
-  /*
-  unsigned char gray = 30;
-  fprintf(fh, "p6\n");
-  fprintf(fh, "%d", gray);
-  */
+  FILE * fh2 = fopen(argv[3], "w");
+  if(format == 6)
+  {
+    write_to_p6(fh2, buffer,width,height);
+  }
+  if(format== 3)
+  {
+    write_to_p3(fh2,buffer, width, height);
+  }
   //git location
   //https://github.com/gruenewald99/cs430_project1.git
 
 }
-void magic_pixel_buffer_buffer(FILE *fh, int w, int h)
+pixel magic_pixel_buffer_buffer(FILE *fh, int w, int h)
 {
   pixel *buffer = malloc(sizeof(pixel)* w * h);
   if(file_orig_format == '3')
@@ -88,7 +92,7 @@ void magic_pixel_buffer_buffer(FILE *fh, int w, int h)
       int i;
       for (i=0; i<w*h; i++)
       {
-
+        //runs through the next element to get red color
         char array[5];
         int j=0;
         for(j=0; j<4; j++)
@@ -120,6 +124,7 @@ void magic_pixel_buffer_buffer(FILE *fh, int w, int h)
         buffer[i].g = num;
 
 
+        //gets the blue
         for(j=0; j<4; j++)
         {
           array[j]=fgetc(fh);
@@ -135,7 +140,6 @@ void magic_pixel_buffer_buffer(FILE *fh, int w, int h)
 
       }
 
-      //gets the blue
 
 
       // for(int i = 0;i<w*h; i++)
@@ -147,13 +151,46 @@ void magic_pixel_buffer_buffer(FILE *fh, int w, int h)
       //
       // }
       //use fgetc and atoi to read and convert ascii buffer
+  return *buffer;
   }
-  if(file_orig_format == 6)
+  if(file_orig_format == '6')
   {
-    
-
-
-
+    for(int i = 0; i< w*h; i++)
+    {
+      int r,g,b;
+      int *buf = malloc(sizeof(int)*3) ;
+      *buf = 0;
+      int bytes_read;
+      bytes_read = fread(buf, 1,3, fh);
+      r = (*buf >> 16) & 0xFF;
+      g = (*buf >> 8) & 0xFF;
+      b = (*buf) & 0xFF;
+      buffer[i].r = r;
+      buffer[i].g = g;
+      buffer[i].b = b;
+    }
+    return *buffer;
   }
+
+}
+void write_to_p6(FILE *fh2, pixel buffer, int w, int h)
+{
+    fprintf(fh2, "P%c\n", file_orig_format);
+    fprintf(fh2, "%d %d\n",w,h);
+    fprintf(fh2, "%d\n", max_color);
+//fwrite()
+
+}
+void write_to_p3(FILE *fh2, pixel buffer, int w, int h)
+{
+
+  fprintf(fh2, "P%c\n", file_orig_format);
+  fprintf(fh2, "%d %d\n",w,h);
+  fprintf(fh2, "%d\n", max_color);
+
+  
+
+
+//fprintf
 
 }
